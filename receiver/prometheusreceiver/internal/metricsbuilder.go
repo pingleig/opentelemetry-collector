@@ -29,6 +29,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const MagicScrapeJobLabel = "magic_scrape_job"
+
 const (
 	metricsSuffixCount  = "_count"
 	metricsSuffixBucket = "_bucket"
@@ -161,6 +163,8 @@ func (b *metricBuilder) Build() ([]*metricspb.Metric, int, int, error) {
 func isUsefulLabel(mType metricspb.MetricDescriptor_Type, labelKey string) bool {
 	result := false
 	switch labelKey {
+	case MagicScrapeJobLabel:
+		return false
 	case model.MetricNameLabel:
 	case model.InstanceLabel:
 	case model.SchemeLabel:

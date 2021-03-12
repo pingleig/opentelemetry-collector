@@ -120,7 +120,9 @@ func (tr *transaction) AddFast(_ uint64, _ int64, _ float64) error {
 }
 
 func (tr *transaction) initTransaction(ls labels.Labels) error {
-	job, instance := ls.Get(model.JobLabel), ls.Get(model.InstanceLabel)
+	// A hack for https://github.com/open-telemetry/opentelemetry-collector/issues/575#issuecomment-797719376
+	//job, instance := ls.Get(model.JobLabel), ls.Get(model.InstanceLabel)
+	job, instance := ls.Get(MagicScrapeJobLabel), ls.Get(model.InstanceLabel)
 	if job == "" || instance == "" {
 		return errNoJobInstance
 	}

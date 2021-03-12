@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/prometheus/prometheus/discovery"
+	"github.com/prometheus/prometheus/pkg/relabel"
 	"github.com/prometheus/prometheus/scrape"
 	"go.uber.org/zap"
 
@@ -53,6 +54,16 @@ func (r *pReceiver) Start(ctx context.Context, host component.Host) error {
 	r.cancelFunc = cancel
 
 	logger := internal.NewZapToGokitLogAdapter(r.logger)
+
+	// A hack for https://github.com/open-telemetry/opentelemetry-collector/issues/575#issuecomment-797719376
+	for i := range r.cfg.PrometheusConfig.ScrapeConfigs {
+		r.cfg.PrometheusConfig.ScrapeConfigs[i].RelabelConfigs = append(r.cfg.PrometheusConfig.ScrapeConfigs[i].RelabelConfigs, &relabel.Config{
+			Action:      relabel.Replace,
+			Regex:       relabel.MustNewRegexp("^instance$"),             // instance is always there, so we will find a match
+			Replacement: r.cfg.PrometheusConfig.ScrapeConfigs[i].JobName, // value is job name
+			TargetLabel: internal.MagicScrapeJobLabel,                    // creates a new magic label
+		})
+	}
 
 	discoveryManager := discovery.NewManager(discoveryCtx, logger)
 	discoveryCfg := make(map[string]discovery.Configs)
