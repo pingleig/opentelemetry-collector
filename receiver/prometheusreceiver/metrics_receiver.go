@@ -16,6 +16,7 @@ package prometheusreceiver
 
 import (
 	"context"
+	"github.com/prometheus/common/model"
 	"time"
 
 	"github.com/prometheus/prometheus/discovery"
@@ -57,11 +58,19 @@ func (r *pReceiver) Start(ctx context.Context, host component.Host) error {
 
 	// A hack for https://github.com/open-telemetry/opentelemetry-collector/issues/575#issuecomment-797719376
 	for i := range r.cfg.PrometheusConfig.ScrapeConfigs {
+		r.logger.Warn("Adding extra relabel config")
 		r.cfg.PrometheusConfig.ScrapeConfigs[i].RelabelConfigs = append(r.cfg.PrometheusConfig.ScrapeConfigs[i].RelabelConfigs, &relabel.Config{
-			Action:      relabel.Replace,
-			Regex:       relabel.MustNewRegexp("^__address__$"),          // __address__ is always there, so we will find a match
-			Replacement: r.cfg.PrometheusConfig.ScrapeConfigs[i].JobName, // value is job name
-			TargetLabel: internal.MagicScrapeJobLabel,                    // creates a new magic label
+			Action:       relabel.Replace,
+			Regex:        relabel.MustNewRegexp(".*"),                     // __address__ is always there, so we will find a match
+			Replacement:  r.cfg.PrometheusConfig.ScrapeConfigs[i].JobName, // value is hard coded job name
+			SourceLabels: model.LabelNames{"__address__"},
+			TargetLabel:  internal.MagicScrapeJobLabel, // creates a new magic label
+		}, &relabel.Config{
+			Action:       relabel.Replace,
+			Regex:        relabel.MustNewRegexp("(.*)"),     // __address__ is always there, so we will find a match
+			Replacement:  "$1",                              // value is actual __address__
+			TargetLabel:  internal.MagicScrapeInstanceLabel, // creates a new magic label
+			SourceLabels: model.LabelNames{"__address__"},
 		})
 	}
 

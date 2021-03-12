@@ -122,13 +122,14 @@ func (tr *transaction) AddFast(_ uint64, _ int64, _ float64) error {
 func (tr *transaction) initTransaction(ls labels.Labels) error {
 	// A hack for https://github.com/open-telemetry/opentelemetry-collector/issues/575#issuecomment-797719376
 	//job, instance := ls.Get(model.JobLabel), ls.Get(model.InstanceLabel)
-	job, instance := ls.Get(MagicScrapeJobLabel), ls.Get(model.InstanceLabel)
+	job, instance := ls.Get(MagicScrapeJobLabel), ls.Get(MagicScrapeInstanceLabel)
 	if job == "" || instance == "" {
 		return errNoJobInstance
 	}
 	// discover the binding target when this method is called for the first time during a transaction
 	mc, err := tr.ms.Get(job, instance)
 	if err != nil {
+		tr.logger.Warn("job instance not found ", zap.String("job", job), zap.String("instance", instance))
 		return err
 	}
 	if tr.jobsMap != nil {
